@@ -7,16 +7,18 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/objdetect.hpp>
 
 extern "C" {
 #include "libavutil/avutil.h"
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
-//新版里的图像转换结构需要引入的头文件
+	//新版里的图像转换结构需要引入的头文件
 #include "libswscale/swscale.h"
 };
 
 using namespace cv;
+using namespace std;
 
 int main(int argc, char *argv[])
 {
@@ -137,7 +139,8 @@ int main(int argc, char *argv[])
 					time(&t);
 					printf("before %s\n", ctime(&t));
 					cascade.detectMultiScale(gray, faces, 2, 2,
-					                         CV_HAAR_FIND_BIGGEST_OBJECT | CV_HAAR_DO_ROUGH_SEARCH | CV_HAAR_SCALE_IMAGE, 0);
+					                         CV_HAAR_FIND_BIGGEST_OBJECT | CV_HAAR_DO_ROUGH_SEARCH | CV_HAAR_SCALE_IMAGE,
+					                         Size(50, 50));
 					time(&t);
 					printf("after %s\n", ctime(&t));
 					Mat face;
