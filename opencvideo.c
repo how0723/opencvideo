@@ -1,5 +1,7 @@
 #define __STDC_CONSTANT_MACROS
 #include <stdio.h>
+#include <unistd.h>
+#include <time.h>
 // Opencv
 #include <opencv/cv.h>
 #include <opencv2/core/core.hpp>
@@ -102,14 +104,18 @@ int main(int argc, char *argv[])
 	int ret;
 	int got_picture;
 
+	Mat gray;
+	CascadeClassifier cascade;
+	cascade.load("haarcascade_frontalface_alt.xml");
+
 	cvNamedWindow("RGB", 1);
+	time_t t;
 	while (1) {
 		if (av_read_frame(pFormatCtx, packet) >= 0) {
 			if (packet->stream_index == videoindex) {
 				ret = avcodec_decode_video2(pCodecCtx, pAvFrame, &got_picture, packet);
 				if (ret < 0) {
-					printf
-					("Decode Error.（解码错误）\n");
+					printf("Decode Error.（解码错误）\n");
 					return -1;
 				}
 				if (got_picture) {
@@ -118,6 +124,57 @@ int main(int argc, char *argv[])
 					          pAvFrame->linesize, 0, pCodecCtx->height, pFrameBGR->data, pFrameBGR->linesize);
 
 					memcpy(pCvMat.data, out_buffer, size);
+
+					/////////////////////////////////////////////////////////////////
+					vector<Rect> faces(0);
+
+					cvtColor(pCvMat, gray, CV_BGR2GRAY);
+					//改变图像大小，使用双线性差值
+					//resize(gray, smallImg, smallImg.size(), 0, 0, INTER_LINEAR);
+					//变换后的图像进行直方图均值化处理
+					equalizeHist(gray, gray);
+
+					time(&t);
+					printf("before %s\n", ctime(&t));
+					cascade.detectMultiScale(gray, faces, 2, 2,
+					                         CV_HAAR_FIND_BIGGEST_OBJECT | CV_HAAR_DO_ROUGH_SEARCH | CV_HAAR_SCALE_IMAGE, 0);
+					time(&t);
+					printf("after %s\n", ctime(&t));
+					Mat face;
+					Point text_lb;
+
+					for (size_t i = 0; i < faces.size(); i++) {
+						if (faces[i].height > 0 && faces[i].width > 0) {
+							face = gray(faces[i]);
+							text_lb = Point(faces[i].x, faces[i].y);
+
+							rectangle(pCvMat, faces[i], Scalar(255, 0, 0), 1, 8, 0);
+							//putText(pCvMat, "name", text_lb, FONT_HERSHEY_COMPLEX, 1, Scalar(0, 0, 255));
+						}
+					}
+#if 0
+					Mat face_test;
+					int predictPCA = 0;
+					if (face.rows >= 120) {
+						resize(face, face_test, Size(92, 112));
+
+					}
+					//Mat face_test_gray;
+					//cvtColor(face_test, face_test_gray, CV_BGR2GRAY);
+
+					if (!face_test.empty()) {
+						//测试图像应该是灰度图
+						predictPCA = modelPCA->predict(face_test);
+					}
+
+					cout << predictPCA << endl;
+					if (predictPCA == 40) {
+						string name = "LiuXiaoLong";
+						putText(pCvMat, name, text_lb, FONT_HERSHEY_COMPLEX, 1, Scalar(0, 0, 255));
+					}
+#endif
+					/////////////////////////////////////////////////////////////////
+
 					imshow("RGB", pCvMat);
 					waitKey(1);
 				}
